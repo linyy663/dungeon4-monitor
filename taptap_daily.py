@@ -743,7 +743,7 @@ def main():
 
 if __name__ == "__main__":
     import sys
-    report_url = ""
+    report_url = "https://linyy663.github.io/dungeon4-monitor/daily/"
     if "--report-url" in sys.argv:
         idx = sys.argv.index("--report-url")
         if idx + 1 < len(sys.argv):

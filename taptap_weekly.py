@@ -978,7 +978,13 @@ def main():
     log("=" * 60)
     log(f"汇总: {len(reviews)}评分 + {len(posts)}帖子 + {total_c}回复 + {total_n}嵌套 = {deploy_cfg['total_interact']}总互动")
     log(f"HTML 报告: {html_path}")
-    log(f"等待 CloudStudio 部署后推送飞书...")
+
+    # 直接推送飞书（无需等待 CloudStudio）
+    chat_summary = generate_chat_summary(all_items, report_url="https://linyy663.github.io/dungeon4-monitor/weekly/")
+    push_chat_summary(chat_summary)
+    with open(summary_file, "w", encoding="utf-8") as f:
+        f.write(chat_summary)
+    log(f"[保存] 推送摘要 -> chat_summary_latest.txt")
     log("=" * 60)
 
 if __name__ == "__main__":
