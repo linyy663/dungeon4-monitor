@@ -1,0 +1,39 @@
+name: 每周舆情周报
+
+on:
+  schedule:
+    # 每周一 11:00 北京时间 (UTC+8) = 03:00 UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 运行周报脚本
+        run: python taptap_weekly.py
+
+      - name: 构建 GitHub Pages 站点
+        run: python build_site.py
+
+      - name: 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          keep_files: true   # 保留日报的 HTML
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
