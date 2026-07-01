@@ -70,6 +70,3 @@ h1 {{ font-size: 2rem; margin-bottom: 8px; background: linear-gradient(90deg, #f
 with open(os.path.join(PUBLIC_DIR, "index.html"), "w", encoding="utf-8") as f:
     f.write(index_html)
 print(f"✅ 首页生成完成")
-'''
-<CQ_code>
-</CQ_code>
