@@ -1,10 +1,7 @@
 name: 每周舆情周报
 
 on:
-  schedule:
-    # 每周一 11:00 北京时间 (UTC+8) = 03:00 UTC
-    - cron: '0 3 * * 1'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 jobs:
   weekly-report:

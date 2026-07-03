@@ -1,9 +1,6 @@
 name: 每日舆情日报
 
 on:
-  schedule:
-    # 每天 10:00 北京时间 (UTC+8) = 02:00 UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
