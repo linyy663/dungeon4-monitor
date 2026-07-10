@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .workbuddy/
 .env
+trigger_github.py
+setup_scheduled_tasks.ps1
