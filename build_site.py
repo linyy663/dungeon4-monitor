@@ -26,7 +26,9 @@ print("构建 GitHub Pages 站点")
 # === 地下城堡4 ===
 print("\n[地下城堡4]")
 copy_html("data/html_report_daily/index.html", "dungeon4/daily/index.html")
+copy_html("data/html_report_daily/index.html", "daily/index.html")       # 兼容旧链接
 copy_html("data/html_report/index.html", "dungeon4/weekly/index.html")
+copy_html("data/html_report/index.html", "weekly/index.html")            # 兼容旧链接
 
 # === 深空之眼 ===
 print("\n[深空之眼]")
