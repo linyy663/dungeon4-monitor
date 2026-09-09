@@ -14,7 +14,13 @@ APP_ID    = "728798"
 GROUP_ID  = "853936"
 GAME_NAME = "地下城堡4"
 
-FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/39d53112-44e8-4bba-bb18-4a6de567fe45"
+FEISHU_WEBHOOKS = [
+    "https://open.feishu.cn/open-apis/bot/v2/hook/39d53112-44e8-4bba-bb18-4a6de567fe45",
+    "https://open.feishu.cn/open-apis/bot/v2/hook/64be9465-5271-46bf-a0ab-e24c4d86474a",
+]
+
+NO_PUSH = "--no-push" in sys.argv
+PUSH_ONLY = "--push-only" in sys.argv
 
 today = datetime.now()
 # 动态计算昨天日期，确保每次推送的都是前一日数据
@@ -686,7 +692,56 @@ def generate_chat_summary(all_items, date_str, report_url=""):
 # ══════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════
+def push_feishu_card(chat_text):
+    """推送 interactive 卡片到所有飞书群"""
+    import urllib.request
+    payload = json.dumps({
+        "msg_type": "interactive",
+        "card": {
+            "header": {"title": {"tag": "plain_text", "content": f"{GAME_NAME} TapTap 舆情日报"}, "template": "blue"},
+            "elements": [{"tag": "markdown", "content": chat_text}]
+        }
+    }).encode("utf-8")
+    for hook in FEISHU_WEBHOOKS:
+        req = urllib.request.Request(hook, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req)
+            result = json.loads(resp.read().decode("utf-8"))
+            ok = result.get("code") == 0 or result.get("StatusCode") == 0
+            log(f"[飞书推送] {'OK' if ok else 'FAIL'} ({hook[-12:]}): {result}")
+        except Exception as e:
+            log(f"[飞书推送] ERROR ({hook[-12:]}): {e}")
+
+
+def push_only_mode(report_url):
+    """仅推送模式：读取已生成的摘要文件，替换部署链接占位符后推送（部署完成后调用）"""
+    summary_file = os.path.join(DATA_DIR, "chat_summary_daily_latest.txt")
+    log("=" * 60)
+    log(f"{GAME_NAME} TapTap 舆情日报 仅推送模式（部署后推送）")
+    log("=" * 60)
+
+    if not os.path.exists(summary_file):
+        log(f"[错误] 找不到摘要文件 {summary_file}，请先运行生成流程（不带 --push-only）")
+        return
+
+    with open(summary_file, encoding="utf-8") as f:
+        chat_text = f.read()
+
+    if report_url:
+        chat_text = chat_text.replace("__CLOUDSTUDIO_URL__", report_url)
+        log(f"[推送] 使用部署链接: {report_url}")
+    else:
+        log("[警告] 未提供 --report-url，卡片中的完整日报链接将显示占位文字")
+
+    push_feishu_card(chat_text)
+    log("=" * 60)
+
+
 def main():
+    if PUSH_ONLY:
+        push_only_mode(globals().get("report_url", ""))
+        return
+
     log("=" * 60)
     log(f"{GAME_NAME} TapTap 舆情日报")
     log(f"日期: {DATE}")
@@ -721,24 +776,13 @@ def main():
     log("=" * 60)
     log(f"汇总: {len(reviews)}评分 + {len(posts)}帖子 + {total_c}回复 + {total_n}嵌套 = {len(reviews)+len(posts)+total_c+total_n}总互动")
 
-    # 飞书推送
-    import urllib.request
-    chat_text = generate_chat_summary(all_items, DATE, report_url=report_url)
-    payload = json.dumps({
-        "msg_type": "interactive",
-        "card": {
-            "header": {"title": {"tag": "plain_text", "content": f"{GAME_NAME} TapTap 舆情日报"}, "template": "blue"},
-            "elements": [{"tag": "markdown", "content": chat_text}]
-        }
-    }).encode("utf-8")
-    req = urllib.request.Request(FEISHU_WEBHOOK, data=payload, headers={"Content-Type": "application/json"})
-    try:
-        resp = urllib.request.urlopen(req)
-        result = json.loads(resp.read().decode("utf-8"))
-        ok = result.get("code") == 0 or result.get("StatusCode") == 0
-        log(f"[飞书推送] {'OK' if ok else 'FAIL'}: {result}")
-    except Exception as e:
-        log(f"[飞书推送] ERROR: {e}")
+    # 飞书推送（--no-push 时跳过，等待部署完成后用 --push-only 携带真实链接推送）
+    if NO_PUSH:
+        log("[跳过推送] 已指定 --no-push：请先部署 HTML，部署成功后运行 --push-only --report-url <链接> 完成推送")
+        log("=" * 60)
+        return
+
+    push_feishu_card(generate_chat_summary(all_items, DATE, report_url=report_url))
     log("=" * 60)
 
 if __name__ == "__main__":

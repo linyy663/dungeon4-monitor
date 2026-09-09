@@ -15,7 +15,13 @@ APP_ID    = "728798"
 GROUP_ID  = "853936"
 GAME_NAME = "地下城堡4"
 
-FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/39d53112-44e8-4bba-bb18-4a6de567fe45"
+FEISHU_WEBHOOKS = [
+    "https://open.feishu.cn/open-apis/bot/v2/hook/39d53112-44e8-4bba-bb18-4a6de567fe45",
+    "https://open.feishu.cn/open-apis/bot/v2/hook/64be9465-5271-46bf-a0ab-e24c4d86474a",
+]
+
+NO_PUSH = "--no-push" in sys.argv
+PUSH_ONLY = "--push-only" in sys.argv
 
 today = datetime.now()
 last_monday = today - timedelta(days=today.weekday() + 7)
@@ -903,14 +909,14 @@ def push_chat_summary(summary_text):
         }
     }
     try:
-        r = requests.post(FEISHU_WEBHOOK, json=payload, timeout=20)
-        res = r.json()
-        if res.get("code") == 0:
-            log("  [飞书聊天] 推送成功")
-            return True
-        else:
-            log(f"  [飞书聊天] 推送失败: {res}")
-            return False
+        for hook in FEISHU_WEBHOOKS:
+            r = requests.post(hook, json=payload, timeout=20)
+            res = r.json()
+            if res.get("code") == 0:
+                log(f"  [飞书聊天] 推送成功 ({hook[-12:]})")
+            else:
+                log(f"  [飞书聊天] 推送失败 ({hook[-12:]}): {res}")
+        return True
     except Exception as e:
         log(f"  [飞书聊天] 推送异常: {e}")
         return False
@@ -918,7 +924,41 @@ def push_chat_summary(summary_text):
 # ══════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════
+def push_only_mode():
+    """仅推送模式：读取已生成的摘要文件，替换部署链接占位符后推送（部署完成后调用）"""
+    report_url = ""
+    if "--report-url" in sys.argv:
+        idx = sys.argv.index("--report-url")
+        if idx + 1 < len(sys.argv):
+            report_url = sys.argv[idx + 1]
+
+    summary_file = os.path.join(DATA_DIR, "chat_summary_latest.txt")
+    log("=" * 60)
+    log(f"{GAME_NAME} TapTap 舆情周报 仅推送模式（部署后推送）")
+    log("=" * 60)
+
+    if not os.path.exists(summary_file):
+        log(f"[错误] 找不到摘要文件 {summary_file}，请先运行生成流程（不带 --push-only）")
+        return
+
+    with open(summary_file, encoding="utf-8") as f:
+        chat_text = f.read()
+
+    if report_url:
+        chat_text = chat_text.replace("__CLOUDSTUDIO_URL__", report_url)
+        log(f"[推送] 使用部署链接: {report_url}")
+    else:
+        log("[警告] 未提供 --report-url，卡片中的完整周报链接将显示占位文字")
+
+    push_chat_summary(chat_text)
+    log("=" * 60)
+
+
 def main():
+    if PUSH_ONLY:
+        push_only_mode()
+        return
+
     log("=" * 60)
     log(f"{GAME_NAME} TapTap 舆情周报 v7")
     log(f"周期: {WEEK_LABEL}")
@@ -979,7 +1019,12 @@ def main():
     log(f"汇总: {len(reviews)}评分 + {len(posts)}帖子 + {total_c}回复 + {total_n}嵌套 = {deploy_cfg['total_interact']}总互动")
     log(f"HTML 报告: {html_path}")
 
-    # 直接推送飞书（无需等待 CloudStudio）
+    # 飞书推送（--no-push 时跳过，等待部署完成后用 --push-only 携带真实链接推送）
+    if NO_PUSH:
+        log("[跳过推送] 已指定 --no-push：请先部署 HTML，部署成功后运行 --push-only --report-url <链接> 完成推送")
+        log("=" * 60)
+        return
+
     chat_summary = generate_chat_summary(all_items, report_url="https://linyy663.github.io/dungeon4-monitor/weekly/")
     push_chat_summary(chat_summary)
     with open(summary_file, "w", encoding="utf-8") as f:
