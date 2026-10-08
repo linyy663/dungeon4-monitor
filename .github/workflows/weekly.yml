@@ -1,7 +1,13 @@
 name: 每周舆情周报
 
 on:
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
+
+concurrency:
+  group: report-weekly
+  cancel-in-progress: false
 
 jobs:
   weekly-report:

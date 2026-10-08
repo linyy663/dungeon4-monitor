@@ -1,7 +1,13 @@
 name: 每日舆情日报
 
 on:
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch:
+
+concurrency:
+  group: report-daily
+  cancel-in-progress: false
 
 jobs:
   daily-report:
