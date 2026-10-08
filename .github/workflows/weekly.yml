@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 3 * * 1'
   workflow_dispatch:
+    inputs:
+      no_push:
+        description: '仅生成页面，跳过飞书推送'
+        type: boolean
+        default: false
 
 concurrency:
   group: report-weekly
@@ -27,7 +32,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: 运行周报脚本
-        run: python taptap_weekly.py
+        run: python taptap_weekly.py ${{ inputs.no_push && '--no-push' || '' }}
 
       - name: 构建 GitHub Pages 站点
         run: python build_site.py
@@ -37,6 +42,6 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
-          force_orphan: true
+          keep_files: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
