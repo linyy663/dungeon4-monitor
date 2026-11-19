@@ -74,9 +74,11 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         run: pip install -r requirements.txt
 
+      # 2026-11-19 停用飞书群推送：固定 --no-push（日报页面仍每日生成并部署到 GitHub Pages）
+      # 如需恢复推送，把 --no-push 改回：${{ inputs.no_push && '--no-push' || '' }}
       - name: 运行日报脚本
         if: steps.guard.outputs.skip != 'true'
-        run: python taptap_daily.py ${{ inputs.no_push && '--no-push' || '' }}
+        run: python taptap_daily.py --no-push
 
       - name: 构建 GitHub Pages 站点
         if: steps.guard.outputs.skip != 'true'
